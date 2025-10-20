@@ -1,0 +1,129 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+// --- Stack Implementation ---
+
+int top = -1;
+char stack[100];
+
+void push(char element) {
+    if (top < 99) {
+        stack[++top] = element;
+    }
+    else {
+        printf("Stack Overflow\n");
+        exit(1); 
+    }
+}
+
+int pop() {
+    if (top >= 0) {
+        return stack[top--];
+    }
+    else {
+        printf("Stack Underflow\n");
+        exit(1);
+    }
+}
+
+int peek() {
+    if (top >= 0) {
+        return stack[top];
+    }
+    else {
+        return -1; 
+    }
+}
+
+int isEmpty() {
+    return top == -1;
+}
+
+// --- Infix to Postfix Logic ---
+
+int isOperand(char ch) {
+    return isalnum(ch); 
+}
+
+int precedence(char n) {
+    switch (n) {
+    case '+':
+    case '-':
+        return 1;
+    case '*':
+    case '/':
+        return 2;
+    case '^':
+        return 3;
+    case '(':
+        return 0;
+    default:
+        return -1;
+    }
+}
+
+void infixToPostfix(char infix[], char postfix[]) {
+    int i, j = 0;
+    char item;
+
+    for (i = 0; infix[i] != '\0'; i++) {
+        item = infix[i];
+
+        if (item == ' ' || item == '\t') {
+            continue;
+        }
+        else if (isOperand(item)) {
+            postfix[j++] = item;
+        }
+        else if (item == '(') {
+            push(item); 
+        }
+        else if (item == ')') {
+            
+            while (!isEmpty() && peek() != '(') {
+                postfix[j++] = pop();
+            }
+
+            if (isEmpty()) {
+                printf("Invalid Expression: Mismatched parentheses\n");
+                exit(1);
+            }
+            else {
+                pop();
+            }
+        }
+        else { 
+            while (!isEmpty() && peek() != '(' && precedence(peek()) >= precedence(item)) {
+                postfix[j++] = pop();
+            }
+            push(item);
+        }
+    }
+    while (!isEmpty()) {
+        if (peek() == '(') {
+            printf("Invalid Expression: Mismatched parentheses\n");
+            exit(1);
+        }
+        postfix[j++] = pop();
+    }
+    postfix[j] = '\0';
+}
+
+// --- Main Function ---
+int main() {
+    char infix[100], postfix[100];
+
+    printf("Enter an infix expression: ");
+    fgets(infix, sizeof(infix), stdin);
+
+    infix[strcspn(infix, "\n")] = '\0';
+
+    infixToPostfix(infix, postfix);
+    printf("Postfix expression: %s\n", postfix);
+
+    return 0;
+}
