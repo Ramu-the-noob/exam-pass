@@ -1,0 +1,164 @@
+// Using _CRT_SECURE_NO_WARNINGS for Visual Studio compatibility with scanf/printf
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h> // For exit()
+#include <string.h> // For memset()
+
+// --- Maze Configuration ---
+// (We will use 1 for a landmine, 0 for an empty cell)
+#define ROWS 5
+#define COLS 5
+
+int maze[ROWS][COLS] = {
+    {0, 0, 1, 0, 0},
+    {0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 1},
+    {0, 0, 0, 0, 0},
+    {0, 1, 0, 0, 0}
+};
+
+// This 2D array will store our final distances
+int distances[ROWS][COLS];
+
+// --- Queue Implementation (for BFS) ---
+
+/**
+ * @brief Represents a single cell (node) in our graph.
+ */
+typedef struct {
+    int r; // Row
+    int c; // Column
+} Cell;
+
+// A simple circular queue for our Cell struct
+#define QUEUE_SIZE (ROWS * COLS) // Max possible size
+Cell queue[QUEUE_SIZE];
+int front = 0;
+int rear = 0;
+int count = 0;
+
+int isEmpty() {
+    return count == 0;
+}
+
+int isFull() {
+    return count == QUEUE_SIZE;
+}
+
+/**
+ * @brief Adds a cell to the back of the queue.
+ */
+void enqueue(Cell cell) {
+    if (isFull()) {
+        printf("Queue overflow! This should not happen.\n");
+        return;
+    }
+    queue[rear] = cell;
+    rear = (rear + 1) % QUEUE_SIZE;
+    count++;
+}
+
+/**
+ * @brief Removes and returns a cell from the front of the queue.
+ */
+Cell dequeue() {
+    if (isEmpty()) {
+        printf("Queue underflow! This should not happen.\n");
+        Cell errorCell = {-1, -1};
+        return errorCell;
+    }
+    Cell cell = queue[front];
+    front = (front + 1) % QUEUE_SIZE;
+    count--;
+    return cell;
+}
+
+// --- BFS (Graph) Algorithm ---
+
+/**
+ * @brief Helper function to check if a cell (r, c) is within
+ * the maze boundaries.
+ */
+int isValid(int r, int c) {
+    return (r >= 0) && (r < ROWS) &&
+           (c >= 0) && (c < COLS);
+}
+
+// Movement arrays for 4 directions: Up, Down, Left, Right
+int dRow[] = {-1, 1, 0, 0};
+int dCol[] = {0, 0, -1, 1};
+
+/**
+ * @brief Runs a Multi-Source BFS to find shortest distances from any landmine.
+ */
+void findShortestDistances() {
+    // 1. Initialize 'distances' grid to -1 (unvisited)
+    //    We use memset for this.
+    memset(distances, -1, sizeof(distances));
+
+    // 2. Add all landmines (sources) to the queue
+    for (int r = 0; r < ROWS; r++) {
+        for (int c = 0; c < COLS; c++) {
+            if (maze[r][c] == 1) { // This is a landmine
+                distances[r][c] = 0;
+                Cell mine = {r, c};
+                enqueue(mine);
+            }
+        }
+    }
+
+    // 3. Run the BFS
+    while (!isEmpty()) {
+        // Dequeue the next cell to visit
+        Cell current = dequeue();
+        int r = current.r;
+        int c = current.c;
+
+        // Check all 4 of its neighbors
+        for (int i = 0; i < 4; i++) {
+            int newRow = r + dRow[i];
+            int newCol = c + dCol[i];
+
+            // Check if the neighbor is valid AND has not been visited
+            if (isValid(newRow, newCol) && distances[newRow][newCol] == -1) {
+                // Visit it: set its distance and add it to the queue
+                distances[newRow][newCol] = distances[r][c] + 1;
+                Cell neighbor = {newRow, newCol};
+                enqueue(neighbor);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Helper function to print the final 2D distance grid.
+ */
+void printSolution() {
+    printf("--- Original Maze (1 = Landmine) ---\n");
+    for (int r = 0; r < ROWS; r++) {
+        for (int c = 0; c < COLS; c++) {
+            printf("%2d ", maze[r][c]);
+        }
+        printf("\n");
+    }
+
+    printf("\n--- Shortest Distance to Nearest Landmine ---\n");
+    for (int r = 0; r < ROWS; r++) {
+        for (int c = 0; c < COLS; c++) {
+            printf("%2d ", distances[r][c]);
+        }
+        printf("\n");
+    }
+}
+
+// --- Main Function ---
+int main() {
+    // Run the BFS algorithm
+    findShortestDistances();
+
+    // Print the result
+    printSolution();
+
+    return 0;
+}

@@ -1,0 +1,263 @@
+// This define is needed for Visual Studio to allow using scanf
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h> // For exit()
+
+// Define the maximum size of the dequeue
+#define MAX_SIZE 5
+
+// Global variables for the dequeue
+int deque[MAX_SIZE];
+int front = -1;
+int rear = -1;
+
+// --- Function Prototypes ---
+void insertFront(int item);
+void insertRear(int item);
+int deleteFront();
+int deleteRear();
+int peekFront();
+int peekRear();
+int isFull();
+int isEmpty();
+void display();
+
+// --- Main Program with Menu ---
+int main() {
+    int choice, item;
+
+    printf("--- Dequeue (Double-Ended Queue) Implementation ---\n");
+    printf("The size of the dequeue is %d\n", MAX_SIZE);
+
+    while (1) {
+        printf("\n--- Main Menu ---\n");
+        printf("1. Insert at Front\n");
+        printf("2. Insert at Rear\n");
+        printf("3. Delete from Front\n");
+        printf("4. Delete from Rear\n");
+        printf("5. Peek at Front item\n");
+        printf("6. Peek at Rear item\n");
+        printf("7. Display Dequeue\n");
+        printf("8. Exit\n");
+        printf("Enter your choice: ");
+
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                printf("Enter item to insert at front: ");
+                scanf("%d", &item);
+                insertFront(item);
+                break;
+            case 2:
+                printf("Enter item to insert at rear: ");
+                scanf("%d", &item);
+                insertRear(item);
+                break;
+            case 3:
+                item = deleteFront();
+                if (item != -1) {
+                    printf("Deleted item from front: %d\n", item);
+                }
+                break;
+            case 4:
+                item = deleteRear();
+                if (item != -1) {
+                    printf("Deleted item from rear: %d\n", item);
+                }
+                break;
+            case 5:
+                item = peekFront();
+                if (item != -1) {
+                    printf("Front item is: %d\n", item);
+                }
+                break;
+            case 6:
+                item = peekRear();
+                 if (item != -1) {
+                    printf("Rear item is: %d\n", item);
+                }
+                break;
+            case 7:
+                display();
+                break;
+            case 8:
+                printf("Exiting program.\n");
+                exit(0);
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+// --- Function Definitions ---
+
+/**
+ * Checks if the dequeue is full.
+ */
+int isFull() {
+    // Check if (front is 0 AND rear is MAX-1) OR (front is just after rear)
+    return ((front == 0 && rear == MAX_SIZE - 1) || (front == rear + 1));
+}
+
+/**
+ * Checks if the dequeue is empty.
+ */
+int isEmpty() {
+    return (front == -1);
+}
+
+/**
+ * Adds an item to the front of the dequeue.
+ */
+void insertFront(int item) {
+    if (isFull()) {
+        printf("Queue Overflow! Cannot insert at front.\n");
+        return;
+    }
+
+    if (isEmpty()) {
+        // If first element
+        front = 0;
+        rear = 0;
+    } else if (front == 0) {
+        // Wrap around to the end of the array
+        front = MAX_SIZE - 1;
+    } else {
+        // Decrement front
+        front = front - 1;
+    }
+
+    deque[front] = item;
+    printf("Inserted %d at the front.\n", item);
+}
+
+/**
+ * Adds an item to the rear of the dequeue.
+ */
+void insertRear(int item) {
+    if (isFull()) {
+        printf("Queue Overflow! Cannot insert at rear.\n");
+        return;
+    }
+
+    if (isEmpty()) {
+        // If first element
+        front = 0;
+        rear = 0;
+    } else if (rear == MAX_SIZE - 1) {
+        // Wrap around to the beginning of the array
+        rear = 0;
+    } else {
+        // Increment rear
+        rear = rear + 1;
+    }
+
+    deque[rear] = item;
+    printf("Inserted %d at the rear.\n", item);
+}
+
+/**
+ * Removes and returns the item from the front.
+ */
+int deleteFront() {
+    int item;
+    if (isEmpty()) {
+        printf("Queue Underflow! Cannot delete from front.\n");
+        return -1; // Error code
+    }
+
+    item = deque[front];
+
+    if (front == rear) {
+        // Dequeue is now empty
+        front = -1;
+        rear = -1;
+    } else if (front == MAX_SIZE - 1) {
+        // Wrap around to the beginning
+        front = 0;
+    } else {
+        // Increment front
+        front = front + 1;
+    }
+
+    return item;
+}
+
+/**
+ * Removes and returns the item from the rear.
+ */
+int deleteRear() {
+    int item;
+    if (isEmpty()) {
+        printf("Queue Underflow! Cannot delete from rear.\n");
+        return -1; // Error code
+    }
+
+    item = deque[rear];
+
+    if (front == rear) {
+        // Dequeue is now empty
+        front = -1;
+        rear = -1;
+    } else if (rear == 0) {
+        // Wrap around to the end
+        rear = MAX_SIZE - 1;
+    } else {
+        // Decrement rear
+        rear = rear - 1;
+    }
+
+    return item;
+}
+
+/**
+ * Returns the front item without removing it.
+ */
+int peekFront() {
+    if (isEmpty()) {
+        printf("Dequeue is empty. Nothing to peek at front.\n");
+        return -1; // Error code
+    }
+    return deque[front];
+}
+
+/**
+ * Returns the rear item without removing it.
+ */
+int peekRear() {
+    if (isEmpty()) {
+        printf("Dequeue is empty. Nothing to peek at rear.\n");
+        return -1; // Error code
+    }
+    return deque[rear];
+}
+
+/**
+ * Displays all elements in the dequeue from front to rear.
+ */
+void display() {
+    int i;
+    if (isEmpty()) {
+        printf("Dequeue is empty.\n");
+        return;
+    }
+
+    printf("Dequeue items: [ ");
+    
+    // We must loop from 'front' to 'rear', wrapping around
+    i = front;
+    while (1) {
+        printf("%d ", deque[i]);
+        if (i == rear) {
+            break; // We've printed the last element
+        }
+        i = (i + 1) % MAX_SIZE; // Move to the next element circularly
+    }
+    
+    printf("]\n");
+    printf("(Front at index: %d, Rear at index: %d)\n", front, rear);
+}

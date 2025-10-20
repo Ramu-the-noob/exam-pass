@@ -1,0 +1,176 @@
+// This define is needed for Visual Studio to allow using scanf
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h> // For exit()
+
+// Define the maximum size of the queue
+#define MAX_SIZE 5 
+
+// Global variables for the queue
+int queue[MAX_SIZE];
+int front = -1;
+int rear = -1;
+
+// Function prototypes
+void enqueue(int item);
+int dequeue();
+int peek();
+int isEmpty();
+int isFull();
+void display();
+
+int main() {
+    int choice, item;
+
+    printf("--- Circular Queue Implementation using Array ---\n");
+    printf("The size of the queue is %d\n", MAX_SIZE);
+
+    while (1) { // Infinite loop for the menu
+        printf("\n--- Main Menu ---\n");
+        printf("1. Enqueue (Add item)\n");
+        printf("2. Dequeue (Remove item)\n");
+        printf("3. Peek (View front item)\n");
+        printf("4. Display Queue\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+
+        scanf("%d", &choice);
+
+        switch (choice) {
+        case 1:
+            printf("Enter the item to enqueue: ");
+            scanf("%d", &item);
+            enqueue(item);
+            break;
+        case 2:
+            item = dequeue();
+            if (item != -1) { // -1 is our error code for underflow
+                printf("Dequeued item: %d\n", item);
+            }
+            break;
+        case 3:
+            item = peek();
+            if (item != -1) {
+                printf("Front item is: %d\n", item);
+            }
+            break;
+        case 4:
+            display();
+            break;
+        case 5:
+            printf("Exiting program.\n");
+            exit(0); // Exits the program
+        default:
+            printf("Invalid choice. Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+// --- Function Definitions ---
+
+/**
+ * Checks if the queue is full.
+ * A circular queue is full when the next 'rear' position is the 'front'.
+ */
+int isFull() {
+    if ((rear + 1) % MAX_SIZE == front) {
+        return 1; // True, it's full
+    }
+    return 0; // False, not full
+}
+
+/**
+ * Checks if the queue is empty.
+ * The queue is empty when 'front' is -1.
+ */
+int isEmpty() {
+    if (front == -1) {
+        return 1; // True, it's empty
+    }
+    return 0; // False, not empty
+}
+
+/**
+ * Adds an item to the rear of the queue.
+ */
+void enqueue(int item) {
+    if (isFull()) {
+        printf("Queue Overflow! Cannot enqueue item.\n");
+        return;
+    }
+
+    if (isEmpty()) {
+        front = 0; // If it's the first element, set front to 0
+    }
+
+    // Increment rear in a circular way
+    rear = (rear + 1) % MAX_SIZE;
+    queue[rear] = item;
+
+    printf("Enqueued %d to the queue.\n", item);
+}
+
+/**
+ * Removes and returns the item from the front of the queue.
+ */
+int dequeue() {
+    int item;
+
+    if (isEmpty()) {
+        printf("Queue Underflow! Cannot dequeue item.\n");
+        return -1; // Return -1 as an error indicator
+    }
+
+    item = queue[front];
+
+    if (front == rear) {
+        // This was the last item in the queue, reset to empty state
+        front = -1;
+        rear = -1;
+    }
+    else {
+        // Increment front in a circular way
+        front = (front + 1) % MAX_SIZE;
+    }
+
+    return item;
+}
+
+/**
+ * Returns the front item of the queue without removing it.
+ */
+int peek() {
+    if (isEmpty()) {
+        printf("Queue is empty. Nothing to peek.\n");
+        return -1; // Return -1 as an error indicator
+    }
+
+    return queue[front];
+}
+
+/**
+ * Displays all the elements currently in the queue.
+ */
+void display() {
+    int i;
+
+    if (isEmpty()) {
+        printf("Queue is empty.\n");
+        return;
+    }
+
+    printf("Queue items: [ ");
+
+    // We must loop from 'front' to 'rear', wrapping around the array
+    for (i = front; i != rear; i = (i + 1) % MAX_SIZE) {
+        printf("%d ", queue[i]);
+    }
+    // Print the last element (which the loop stops at)
+    printf("%d ", queue[rear]);
+
+    printf("]\n");
+    printf("(Front is at index: %d, Rear is at index: %d)\n", front, rear);
+}

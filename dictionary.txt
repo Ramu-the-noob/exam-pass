@@ -1,0 +1,226 @@
+// Needed for Visual Studio to allow standard C functions
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/**
+ * @brief The node for our Binary Search Tree.
+ * It holds the key (word) and its value (meaning).
+ */
+struct Node {
+    char* word;
+    char* meaning;
+    struct Node *left;
+    struct Node *right;
+};
+
+// Use a typedef for convenience
+typedef struct Node Node;
+
+
+// --- Function Prototypes ---
+Node* newNode(const char* word, const char* meaning);
+Node* insert(Node* root, const char* word, const char* meaning);
+Node* search(Node* root, const char* word);
+void printInOrder(Node* root);
+void freeTree(Node* root);
+void consumeNewline();
+
+
+// --- Main Program with Menu ---
+int main() {
+    Node* dictionary = NULL; // The root of our BST
+    int choice;
+    char word[100];
+    char meaning[256];
+    Node* searchResult = NULL;
+
+    printf("--- Dictionary using Binary Search Tree ---\n");
+
+    while (1) {
+        printf("\n--- Main Menu ---\n");
+        printf("1. Add/Update a word\n");
+        printf("2. Search for a word\n");
+        printf("3. Display all words (alphabetical)\n");
+        printf("4. Exit\n");
+        printf("Enter your choice: ");
+
+        scanf("%d", &choice);
+        consumeNewline(); // Clear the newline from the input buffer
+
+        switch (choice) {
+            case 1:
+                printf("Enter the word: ");
+                scanf("%99s", word); // Read a single word
+                consumeNewline(); // Clear newline
+
+                printf("Enter the meaning: ");
+                fgets(meaning, 256, stdin); // Read the whole line
+                meaning[strcspn(meaning, "\n")] = '\0'; // Remove trailing newline
+
+                dictionary = insert(dictionary, word, meaning);
+                printf("'%s' has been added/updated.\n", word);
+                break;
+
+            case 2:
+                printf("Enter the word to search: ");
+                scanf("%99s", word);
+                consumeNewline(); // Clear newline
+
+                searchResult = search(dictionary, word);
+                if (searchResult != NULL) {
+                    printf("\n--- Found! ---\n");
+                    printf("Word:    %s\n", searchResult->word);
+                    printf("Meaning: %s\n", searchResult->meaning);
+                } else {
+                    printf("Sorry, the word '%s' was not found.\n", word);
+                }
+                break;
+
+            case 3:
+                printf("\n--- Dictionary A-Z ---\n");
+                if (dictionary == NULL) {
+                    printf("(The dictionary is empty)\n");
+                } else {
+                    printInOrder(dictionary);
+                }
+                break;
+
+            case 4:
+                printf("Exiting and freeing memory...\n");
+                freeTree(dictionary);
+                exit(0);
+
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+    return 0;
+}
+
+
+// --- Function Definitions ---
+
+/**
+ * @brief Utility function to consume the newline character
+ * left in the input buffer after a scanf.
+ */
+void consumeNewline() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+/**
+ * @brief Allocates and initializes a new Node.
+ * It copies the word and meaning into new memory.
+ */
+Node* newNode(const char* word, const char* meaning) {
+    Node* node = (Node*)malloc(sizeof(Node));
+    if (node == NULL) {
+        printf("Error: Out of memory!\n");
+        exit(1);
+    }
+    
+    // _strdup is a non-standard function (common in VS)
+    // that duplicates a string (malloc + strcpy).
+    // Use strdup on Linux/macOS.
+    node->word = _strdup(word);
+    node->meaning = _strdup(meaning);
+
+    if (node->word == NULL || node->meaning == NULL) {
+        printf("Error: Out of memory during string copy!\n");
+        exit(1);
+    }
+    
+    node->left = NULL;
+    node->right = NULL;
+    return node;
+}
+
+/**
+ * @brief Inserts a word-meaning pair into the BST.
+ * If the word already exists, it updates the meaning.
+ */
+Node* insert(Node* root, const char* word, const char* meaning) {
+    // 1. Base Case: If the tree (or subtree) is empty, create the new node
+    if (root == NULL) {
+        return newNode(word, meaning);
+    }
+
+    // 2. Compare the new word with the root's word
+    int cmp = strcmp(word, root->word);
+
+    // 3. Recurse
+    if (cmp < 0) {
+        // New word is smaller (alphabetically), go left
+        root->left = insert(root->left, word, meaning);
+    } 
+    else if (cmp > 0) {
+        // New word is larger, go right
+        root->right = insert(root->right, word, meaning);
+    } 
+    else {
+        // Words are identical (cmp == 0). Update the meaning.
+        free(root->meaning); // Free the old meaning
+        root->meaning = _strdup(meaning); // Set the new one
+    }
+
+    // Return the (possibly updated) root pointer
+    return root;
+}
+
+/**
+ * @brief Searches for a word in the BST.
+ * Returns the Node if found, or NULL if not found.
+ */
+Node* search(Node* root, const char* word) {
+    // 1. Base Cases:
+    // a) Word not found
+    if (root == NULL) {
+        return NULL;
+    }
+    // b) Word found!
+    int cmp = strcmp(word, root->word);
+    if (cmp == 0) {
+        return root;
+    }
+
+    // 2. Recurse
+    if (cmp < 0) {
+        return search(root->left, word); // Go left
+    } else {
+        return search(root->right, word); // Go right
+    }
+}
+
+/**
+ * @brief Prints the entire dictionary in alphabetical order
+ * using an In-Order Traversal (Left, Root, Right).
+ */
+void printInOrder(Node* root) {
+    if (root != NULL) {
+        printInOrder(root->left);
+        printf("  - %s: %s\n", root->word, root->meaning);
+        printInOrder(root->right);
+    }
+}
+
+/**
+ * @brief Frees all memory used by the tree (Post-Order).
+ */
+void freeTree(Node* root) {
+    if (root != NULL) {
+        // Free children first (post-order)
+        freeTree(root->left);
+        freeTree(root->right);
+        
+        // Free the data on this node
+        free(root->word);
+        free(root->meaning);
+        
+        // Free the node itself
+        free(root);
+    }
+}

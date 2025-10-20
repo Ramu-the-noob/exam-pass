@@ -1,0 +1,238 @@
+// Needed for Visual Studio to allow scanf
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h> // For abs()
+
+// The node for our singly linked list.
+// Represents one term, e.g., "5x^2"
+struct Term {
+    int coefficient;
+    int exponent;
+    struct Term* next;
+};
+
+// Use a typedef for convenience
+typedef struct Term Node;
+
+
+// --- Function Prototypes ---
+void insertTerm(Node** poly, int coeff, int exp);
+void display(Node* poly);
+Node* add(Node* poly1, Node* poly2);
+Node* multiply(Node* poly1, Node* poly2);
+void freeList(Node* poly);
+
+
+// --- Main Function ---
+int main() {
+    // poly1 = 3x^4 + 2x^2 + 5
+    Node* poly1 = NULL;
+    insertTerm(&poly1, 3, 4);
+    insertTerm(&poly1, 2, 2);
+    insertTerm(&poly1, 5, 0);
+
+    // poly2 = 2x^3 - 4x^2 + 1
+    Node* poly2 = NULL;
+    insertTerm(&poly2, 2, 3);
+    insertTerm(&poly2, -4, 2);
+    insertTerm(&poly2, 1, 0);
+
+    printf("--- Polynomial Operations ---\n");
+    printf("Poly 1:    ");
+    display(poly1);
+    printf("Poly 2:    ");
+    display(poly2);
+
+    printf("\n---------------------------------\n");
+
+    // Addition
+    Node* sum = add(poly1, poly2);
+    printf("Sum:       ");
+    display(sum);
+
+    // Multiplication
+    Node* product = multiply(poly1, poly2);
+    printf("Product:   ");
+    display(product);
+
+    // Free all allocated memory
+    freeList(poly1);
+    freeList(poly2);
+    freeList(sum);
+    freeList(product);
+
+    return 0;
+}
+
+
+/**
+ * @brief The core function. Inserts a term into the polynomial list.
+ * It keeps the list sorted by exponent (descending) and
+ * automatically combines terms with the same exponent.
+ */
+void insertTerm(Node** poly, int coeff, int exp) {
+    // 1. Don't insert terms with a zero coefficient
+    if (coeff == 0) {
+        return;
+    }
+
+    // 2. Create the new node
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        printf("Error: Out of memory!\n");
+        return;
+    }
+    newNode->coefficient = coeff;
+    newNode->exponent = exp;
+    newNode->next = NULL;
+
+    // 3. Find the correct place to insert
+    Node* current = *poly;
+    Node* prev = NULL;
+
+    // Loop until we find a term with an exponent smaller than ours
+    while (current != NULL && current->exponent > exp) {
+        prev = current;
+        current = current->next;
+    }
+
+    // 4. Handle the insertion
+    if (current != NULL && current->exponent == exp) {
+        // --- Case A: Exponents match. Combine them. ---
+        current->coefficient += coeff;
+        free(newNode); // Don't need the new node
+
+        // If coefficients cancel out (e.g., 5 + -5 = 0), remove the node
+        if (current->coefficient == 0) {
+            if (prev == NULL) {
+                // We are at the head of the list
+                *poly = current->next;
+            } else {
+                // We are in the middle or end
+                prev->next = current->next;
+            }
+            free(current);
+        }
+    } else {
+        // --- Case B: Exponents don't match. Insert the new node. ---
+        if (prev == NULL) {
+            // Insert at the head
+            newNode->next = *poly;
+            *poly = newNode;
+        } else {
+            // Insert in the middle or at the end
+            newNode->next = current;
+            prev->next = newNode;
+        }
+    }
+}
+
+/**
+ * @brief Creates a new polynomial by adding two others.
+ */
+Node* add(Node* poly1, Node* poly2) {
+    Node* result = NULL; // Our new, empty polynomial
+
+    // 1. Add all terms from poly1 into the result
+    Node* temp1 = poly1;
+    while (temp1 != NULL) {
+        insertTerm(&result, temp1->coefficient, temp1->exponent);
+        temp1 = temp1->next;
+    }
+
+    // 2. Add all terms from poly2 into the result
+    // The insertTerm function will automatically handle combining
+    // any like terms.
+    Node* temp2 = poly2;
+    while (temp2 != NULL) {
+        insertTerm(&result, temp2->coefficient, temp2->exponent);
+        temp2 = temp2->next;
+    }
+
+    return result;
+}
+
+/**
+ * @brief Creates a new polynomial by multiplying two others.
+ */
+Node* multiply(Node* poly1, Node* poly2) {
+    Node* result = NULL; // Our new, empty polynomial
+    Node* p1 = poly1;
+
+    // Iterate through every term in poly1
+    while (p1 != NULL) {
+        Node* p2 = poly2;
+        // Iterate through every term in poly2
+        while (p2 != NULL) {
+            
+            // (p1_coeff * p2_coeff) * x^(p1_exp + p2_exp)
+            int newCoeff = p1->coefficient * p2->coefficient;
+            int newExp = p1->exponent + p2->exponent;
+            
+            // Insert this new term into our result.
+            // insertTerm will handle combining all like terms.
+            insertTerm(&result, newCoeff, newExp);
+
+            p2 = p2->next;
+        }
+        p1 = p1->next;
+    }
+    
+    return result;
+}
+
+/**
+ * @brief Displays the polynomial in a human-readable format.
+ */
+void display(Node* poly) {
+    if (poly == NULL) {
+        printf("0\n");
+        return;
+    }
+
+    int isFirstTerm = 1;
+    Node* temp = poly;
+
+    while (temp != NULL) {
+        // 1. Handle the sign (+ or -)
+        if (!isFirstTerm) {
+            printf(temp->coefficient > 0 ? " + " : " - ");
+        } else if (temp->coefficient < 0) {
+            printf("-"); // For first term, just print -
+        }
+        
+        // 2. Get the absolute value of the coefficient
+        int coeff = abs(temp->coefficient);
+
+        // 3. Print coefficient (if not 1, or if it's the constant term)
+        if (coeff != 1 || temp->exponent == 0) {
+            printf("%d", coeff);
+        }
+
+        // 4. Print 'x' and exponent (if exponent is > 0)
+        if (temp->exponent > 0) {
+            printf("x");
+        }
+        if (temp->exponent > 1) {
+            printf("^%d", temp->exponent);
+        }
+
+        isFirstTerm = 0;
+        temp = temp->next;
+    }
+    printf("\n");
+}
+
+/**
+ * @brief Frees all memory associated with a polynomial list.
+ */
+void freeList(Node* poly) {
+    Node* temp;
+    while (poly != NULL) {
+        temp = poly;
+        poly = poly->next;
+        free(temp);
+    }
+}
